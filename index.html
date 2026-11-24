@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#12294a"><link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="이상조치"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<title>이상 발생 조치 보고</title>
+<style>
+:root{--n:#12294a;--t:#0f9d8f;--r:#c00000;--b:#0033cc;--l:#d5dce6}
+*{box-sizing:border-box}
+body{margin:0;background:#eef2f7;color:#1a2433;font:15px/1.45 "KoPub돋움체 Bold","KoPubDotum Bold","Malgun Gothic",sans-serif}
+header{background:var(--n);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px}
+header h1{font-size:17px;margin:0;flex:1}
+main{padding:12px;max-width:760px;margin:auto}
+button,select,input,textarea{font:inherit}
+button{min-height:42px;border:0;border-radius:8px;padding:0 14px;background:var(--t);color:#fff}
+button.g{background:#fff;color:var(--n);border:1px solid var(--l)}
+button.d{background:#b3261e}
+button.s{min-height:34px;padding:0 10px;font-size:13px}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--l);border-radius:8px;background:#fff}
+textarea{min-height:76px}
+label{display:block;font-size:13px;color:#4a5568;margin:10px 0 3px}
+.card{background:#fff;border-radius:10px;padding:12px;margin:10px 0;border:1px solid var(--l)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+.chip{display:inline-block;padding:7px 12px;margin:3px;border:1px solid var(--l);border-radius:20px;background:#fff;color:#333;min-height:0;font-size:13px}
+.chip.on{background:var(--n);color:#fff}
+.b{font-size:12px;padding:2px 8px;border-radius:10px;background:#e3e8f0;color:#333}
+.b.ok{background:#d6f5ee;color:#0a6b61}.b.ap{background:var(--n);color:#fff}
+h2{font-size:16px;margin:16px 0 4px;color:var(--n)}
+table.st{width:100%;border-collapse:collapse;background:#fff}table.st td,table.st th{border:1px solid var(--l);padding:6px}
+.th{width:70px;height:70px;object-fit:cover;border-radius:6px;margin:3px}
+.sheet{display:none}
+.sheet{width:285mm;background:#fff;color:#000;padding:4mm;font-size:11pt}
+.sheet h1{font-size:18pt;margin:0 0 3mm}
+.sheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+.sheet th,.sheet td{border:1px solid #808080;padding:2mm 2.5mm;vertical-align:middle;text-align:center}
+.sheet th{background:#f2f2f2;width:9%}
+.sheet td.body{text-align:left;vertical-align:top;height:118mm}
+.sheet .txt{float:left;width:56%}.sheet .pics{float:right;width:43%}
+.sheet,.sheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet .ln{line-height:2;margin:0;font-size:10pt}.sheet .sy{display:flex}.sheet .sy span:first-child{white-space:nowrap}
+.sheet mark{background:#ff0;color:inherit}
+.sheet .tg{display:inline-block;background:#0033cc;color:#fff;font-size:9pt;padding:0 2mm;border-radius:2mm;font-weight:normal;line-height:1.5}
+.sheet .pics{display:flex;flex-wrap:wrap;gap:2mm;align-items:flex-start}.sheet .pics span{position:relative;display:block;line-height:0;max-width:calc(50% - 1mm)}.sheet .pics .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);color:#fff;font:normal 7.5pt/1.3 inherit;padding:.5mm 1.5mm;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sheet .pics img{width:auto;height:auto;max-width:100%;max-height:56mm;object-fit:fill;border:1px solid #999;display:block}.sheet .pics.t img{max-height:37mm}
+.sheet .pics i{position:absolute;left:0;top:0;background:#0033cc;color:#fff;font-size:8.5pt;padding:0 2mm;font-style:normal}
+.sheet td.l{text-align:left}
+.red{color:var(--r)}.blue{color:var(--b)}
+@page{size:A4 landscape;margin:6mm}
+@media print{body{background:#fff}.ui{display:none!important}.sheet{display:block;padding:0}}
+.pv .sheet{display:block;transform-origin:0 0}
+</style></head><body>
+<div class="ui"><header><h1 id="ttl">이상 발생 조치 보고</h1><span id="hb"></span></header></div>
+<main id="app" class="ui"></main>
+<div id="sh" class="pv" style="overflow:auto"></div>
+<script>
+const K='fr_v1';let db={};try{db=JSON.parse(localStorage.getItem(K))||{}}catch(e){}
+db.cases=db.cases||[];db.user=db.user||'';
+const SYM=['통신','전원','센서','구동/인버터','PLC/프로그램','HMI','기계 연동','기타'],CATS=['가동률개선','ZBB활동','돌발/예방보전','환경개선','기타'],
+ATYPE=['점검/확인','교체','프로그램 수정','설정 변경','청소/조임','기타'],
+EST=['Cycle Time 초과','통신 네트워크 부하 과다','CPU 용량 메모리 부족','프로그램 오류','케이블/커넥터 접촉 불량','모듈 불량','전원 품질 불량','노이즈(EMC)','센서 불량','기계적 원인'],
+SYS=['전원','케이블/커넥터','모듈','프로그램','통신 부하'],SV=['이상없음','의심','원인'],
+LB={line:'라인',proc:'공정',sym:'증상 유형',work:'작업 사항'};
+db.eq=db.eq||{'탄산펫 1호':['랩핑기'],'어셉틱 3호':['싱글 컨베이어','슬립스탑 컨베이어']};
+db.sysE=db.sysE||['전원 공급부','제어반 환경','센서·검출기','제어기기(PLC·서보·인버터)','배선·접속부','구동부(모터·액추에이터)','프로그램','통신 부하'];
+db.sysM=db.sysM||['기계 마모·파손','윤활·급유','에어','스팀','설비 조정','자재','환경(주위온도)'];
+db.estL=db.estL||EST.slice();
+db.wk=db.wk||[];db.symL=db.symL||SYM.slice();
+if(db.symV!=2){db.symV=2;db.symL=db.symL.filter(k=>!/방향\s*(전환|턴)/.test(k));['에어','스팀','윤활','마모','풀림','이탈'].forEach(k=>{if(!db.symL.includes(k)){const j=db.symL.indexOf('기타');db.symL.splice(j<0?db.symL.length:j,0,k)}})}db.cases.forEach(c=>(c.by||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(n=>{if(!db.wk.includes(n))db.wk.push(n)}));
+const EQ0={"BIB":["안성-BIB-001 CASE ERECTOR(8각 제함기)","안성-BIB-002 BIB FILLER","안성-BIB-003 SHUTTLE CON'V","안성-BIB-004 TOP SEALER","안성-BIB-005 Weight Checker","안성-BIB-006 STICKER LABELLER","안성-BIB-007 BIB CONVEYOR","안성-BIB-008 ROBOT PALLETIZER","안성-BIB-009 PALLET MAGAZINE","안성-BIB-010 PALLET CONVEYOR","안성-BIB-011 H.T.S.T","안성-BIB-012 PRINTER","안성-BIB-013 코딩 검사기","안성-BIB-014 BAG 코더"],"어셉틱1호":["안성-어셉틱1호-001 BLOWING M/C","안성-어셉틱1호-002 AIR CONVEYOR","안성-어셉틱1호-003 CAP STERILIZER","안성-어셉틱1호-004 BOTTLE STERILIZER","안성-어셉틱1호-005 ROTARY RINSER","안성-어셉틱1호-006 WEIGHT FILLER","안성-어셉틱1호-007 SERVO CAPPER","안성-어셉틱1호-008 HOPPER ROADER","안성-어셉틱1호-009 CAP SORTER","안성-어셉틱1호-010 PRE-SYSTEM (어셉틱 모듈)","안성-어셉틱1호-011 ACCUMULATOR CONVEYOR","안성-어셉틱1호-012 BOTTLE CONVEYOR","안성-어셉틱1호-013 SHRINK LABELLER","안성-어셉틱1호-014 INCPECTOR (외관 검사기)","안성-어셉틱1호-015 BOTTLE CONVEYOR","안성-어셉틱1호-016 STICKER LABELLER","안성-어셉틱1호-017 DIVIDER(W/A포장기用)","안성-어셉틱1호-018 Wrap Around Packer","안성-어셉틱1호-019 DIVIDER(Shrink포장기用)","안성-어셉틱1호-020 번들 Shrink Packer","안성-어셉틱1호-021 COMBINER","안성-어셉틱1호-022 Bundle CONVEYOR","안성-어셉틱1호-023 WEIGHT CHECKER","안성-어셉틱1호-024 CASE CONVEYOR","안성-어셉틱1호-025 CASE CONVEYOR","안성-어셉틱1호-026 PALLETIZER","안성-어셉틱1호-027 PALLET CONVEYOR","안성-어셉틱1호-028 PALLET CONVEYOR","안성-어셉틱1호-029 BANDING MACHINE","안성-어셉틱1호-030 WET SCRUBBER(탈취탑)","안성-어셉틱1호-031 제품 Coder","안성-어셉틱1호-032 Box Coder","안성-어셉틱1호-033 X-RAY 검사기","안성-어셉틱1호-034 이종캡 검사기","안성-어셉틱1호-035 제품 Coder","안성-어셉틱1호-036 전처리","안성-어셉틱1호-037 CAP 이송 CONVEYOR","안성-어셉틱1호-038 포장기 필름 Auto Trolley","안성-어셉틱1호-039 PALLET MAGAZINE"],"어셉틱2호":["안성-어셉틱2호-001 프리폼 공급장치","안성-어셉틱2호-002 Strech blow molder","안성-어셉틱2호-003 Chiller","안성-어셉틱2호-004 Hot water generator","안성-어셉틱2호-005 Aseptic Filler (Weight type)","안성-어셉틱2호-006 Bottle sterilizer","안성-어셉틱2호-007 Bottle rinser","안성-어셉틱2호-008 Servo Capper","안성-어셉틱2호-009 Cap sterilizer","안성-어셉틱2호-010 Cap sorter","안성-어셉틱2호-011 Aseptic Water AUHT Unit","안성-어셉틱2호-012 AL,AC,Add Tank (3EA)","안성-어셉틱2호-013 ACT Tank Unit","안성-어셉틱2호-014 ACT Tank Utility Unit","안성-어셉틱2호-015 ACT Panel","안성-어셉틱2호-016 COP Receiver Tank Unit","안성-어셉틱2호-017 Filler Balance Tank Unit","안성-어셉틱2호-018 STICKER LABELLER","안성-어셉틱2호-019 BOTTLE CONVEYOR","안성-어셉틱2호-020 PACKER","안성-어셉틱2호-021 WEIGHT CHECKER","안성-어셉틱2호-022 CASE CONVEYOR","안성-어셉틱2호-023 DIVIDER","안성-어셉틱2호-024 PALLETIZER","안성-어셉틱2호-025 WRAPPING MACHINE","안성-어셉틱2호-026 PALLET CONVEYOR","안성-어셉틱2호-027 WET SCRUBBER(탈취탑)","안성-어셉틱2호-028 CHECK MAT","안성-어셉틱2호-029 프리폼 INSPECTION","안성-어셉틱2호-030 LEVEL CHECKER","안성-어셉틱2호-031 제품 Coder","안성-어셉틱2호-032 Box Coder","안성-어셉틱2호-033 오토라벨러","안성-어셉틱2호-034 전처리","안성-어셉틱2호-035 Accum table"],"어셉틱3호":["안성-어셉틱3호-001 어셉틱 전처리","안성-어셉틱3호-002 어셉틱 카보네이터","안성-어셉틱3호-003 프리폼 공급장치","안성-어셉틱3호-004 프리폼 이송 컨베어","안성-어셉틱3호-005 어셉틱콤비블럭-과산화수소 멸균시스템","안성-어셉틱3호-006 BLOWING MACHINE","안성-어셉틱3호-007 무균시스템","안성-어셉틱3호-008 FILLER","안성-어셉틱3호-009 CAP SORTER","안성-어셉틱3호-010 CAP STERILIZER","안성-어셉틱3호-011 CAPPER","안성-어셉틱3호-012 CIP UNIT for 전처리","안성-어셉틱3호-013 CIP UNIT for Filler","안성-어셉틱3호-014 WARMER","안성-어셉틱3호-015 ROLL_FED LABELLER","안성-어셉틱3호-016 SLEEVE SHRINK LABLLER","안성-어셉틱3호-017 캡 & 이종캡 검사기","안성-어셉틱3호-018 코딩 검사기","안성-어셉틱3호-019 FILL LEVEL 검사기","안성-어셉틱3호-020 이물검사기(X-RAY)","안성-어셉틱3호-021 라벨 검사기","안성-어셉틱3호-022 DATE CODER(Oil)","안성-어셉틱3호-023 DATE CODER(Water)","안성-어셉틱3호-024 PAD SHRINK PACKER","안성-어셉틱3호-025 W/A PACKER","안성-어셉틱3호-026 BOX 자동 투입 설비","안성-어셉틱3호-027 PALLETIZER","안성-어셉틱3호-028 WAPPING MACHINE","안성-어셉틱3호-029 AUTO INFEED GUIDE(SHRINK)","안성-어셉틱3호-030 AUTO INFEED GUIDE(W/A)","안성-어셉틱3호-031 AUTO INFEED GUIDE(DIVIDER)","안성-어셉틱3호-032 Case 단위 바코드 라벨라"],"유틸리티":["안성-유틸리티-001 증기보일러(수관식)","안성-유틸리티-002 증기보일러(수관식)","안성-유틸리티-003 증기보일러(관류식)","안성-유틸리티-004 증기보일러(관류식)","안성-유틸리티-005 NH3 Com'p","안성-유틸리티-006 NH3 Com'p","안성-유틸리티-007 NH3 Com'p","안성-유틸리티-008 EVA-CON","안성-유틸리티-009 EVA-CON","안성-유틸리티-010 EVA-CON","안성-유틸리티-011 BRINE COOLER","안성-유틸리티-012 BRINE COOLER","안성-유틸리티-013 BRINE COOLER","안성-유틸리티-014 Air Compressor(Screw)","안성-유틸리티-015 Air Compressor(Screw)","안성-유틸리티-016 Air Compressor(Screw)","안성-유틸리티-017 Air Compressor(Screw)","안성-유틸리티-018 Air Compressor(왕복동)","안성-유틸리티-019 Air Compressor(왕복동)","안성-유틸리티-020 Air Compressor(왕복동)","안성-유틸리티-021 Air Compressor(Screw)","안성-유틸리티-022 Air Compressor(왕복동)","안성-유틸리티-023 Air Compressor(Screw)","안성-유틸리티-024 Air Compressor(왕복동)","안성-유틸리티-025 Air Compressor(Screw)","안성-유틸리티-026 Air Compressor(스크류)","안성-유틸리티-027 Air Compressor(스크류)","안성-유틸리티-028 Chiller(어셉틱 1 1~5호)","안성-유틸리티-029 Chiller(어셉틱 2 1~4호)","안성-유틸리티-030 Chiller(어셉틱 3 1~5호)","안성-유틸리티-031 Chiller(탄산 배합 1~3호)","안성-유틸리티-032 Chiller(탄산 배합 4~5호)","안성-유틸리티-033 Chiller(어셉틱 탄산 배합 1~2호)","안성-유틸리티-034 Chiller(신규 탄산 배합 1~5호)","안성-유틸리티-035 Chiller(BIB 1호)","안성-유틸리티-036 Chiller(인플란트 1~2호)","안성-유틸리티-037 Chiller(탄산펫2 공조 1~4호)","안성-유틸리티-038 Chiller(어셉틱2 공조 1~5호)","안성-유틸리티-039 Chiller(어셉틱3 공조 1~8호)","안성-유틸리티-040 Chiller(제병기 몰드 탄산펫2)","안성-유틸리티-041 Chiller(압축기동력 재확인 필요 어셉틱2)","안성-유틸리티-042 Chiller(압축기동력 재확인 필요 어셉틱3)","안성-유틸리티-043 Chiller(냉동창고 1~3호)","안성-유틸리티-044 Chiller(냉장창고 1~2호)","안성-유틸리티-045 Cooling Tower(대향류형)","안성-유틸리티-046 Cooling Tower(밀페형)","안성-유틸리티-047 Cooling Tower(밀페형)","안성-유틸리티-048 Cooling Tower(밀페형)","안성-유틸리티-049 Cooling Tower(밀페형)","안성-유틸리티-050 Cooling Tower(밀페형)"],"주스펫":["안성-주스펫-001 DE PALLETIZER","안성-주스펫-002 AIR CONVEYOR-Φ38","안성-주스펫-003 AIR CONVEYOR-Φ28","안성-주스펫-004 RINSER","안성-주스펫-005 FILLER","안성-주스펫-006 CAPPER","안성-주스펫-007 LINER REJECTION","안성-주스펫-008 CAP PASTEURIZER","안성-주스펫-009 H.T.S.T","안성-주스펫-010 U.H.T","안성-주스펫-011 COOLER","안성-주스펫-012 BOTTLE CONVEYOR","안성-주스펫-013 ACCUMULATOR CONVEYOR","안성-주스펫-014 제품 DIVIDER","안성-주스펫-015 WRAP AROUND CASER","안성-주스펫-016 CARTON CONVEYOR","안성-주스펫-017 WEIGHT CHECKER","안성-주스펫-018 BOX DIVIDER","안성-주스펫-019 PALLETIZER","안성-주스펫-020 PALLET SYSTEM","안성-주스펫-021 PALLET CONVEYOR","안성-주스펫-022 CAP FEEDER","안성-주스펫-023 CAP 이송 CONVEYOR","안성-주스펫-024 제품 CORDER","안성-주스펫-025 수성BOX CODER","안성-주스펫-026 X-RAY 검사기","안성-주스펫-027 LASER CODER","안성-주스펫-028 코딩 검사기","안성-주스펫-029 캡 & 이종캡 검사기","안성-주스펫-030 LEVEL CHECKER","안성-주스펫-031 PALLET MAGAZINE"],"탄산캔":["안성-탄산캔-001 DE-PALLETIZER","안성-탄산캔-002 공관 이송 CONVEYOR","안성-탄산캔-003 E.C.I(EMPTY CAN INSPECTOR)","안성-탄산캔-004 RINSER","안성-탄산캔-005 FILLER","안성-탄산캔-006 공관 이송 CONVEYOR","안성-탄산캔-007 MIXER","안성-탄산캔-008 CIP UNIT","안성-탄산캔-009 SEAMER","안성-탄산캔-010 PASTEURIZER","안성-탄산캔-011 CAN 이송 CONVEYOR","안성-탄산캔-012 BUNDLE SHRINK PACKER","안성-탄산캔-013 PACK CONVEYOR","안성-탄산캔-014 PACK DIVIDER","안성-탄산캔-015 HALF TRAY PACKER","안성-탄산캔-016 HALF TRAY SHRINK PACKER","안성-탄산캔-017 WRAP AROUND PACKER","안성-탄산캔-018 CASE CONVEYOR","안성-탄산캔-019 WEIGHT CHECKER","안성-탄산캔-020 DIVIDER","안성-탄산캔-021 PALLETIZER","안성-탄산캔-022 PALLET CONVEYOR","안성-탄산캔-023 DRY-SYSTEM","안성-탄산캔-024 X-RAY","안성-탄산캔-025 LEVEL CHECKER","안성-탄산캔-026 DETA CODER","안성-탄산캔-027 코딩 검사기","안성-탄산캔-028 WEIGHT CHECKER","안성-탄산캔-029 BOX CODER","안성-탄산캔-030 END 자동투입기","안성-탄산캔-031 UnWrapper, DeStrapper","안성-탄산캔-032 Case 단위 바코드 라벨라","안성-탄산캔-033 PALLET MAGAZINE"],"탄산펫1호":["안성-탄산펫1호-001 DE PALLETIZER","안성-탄산펫1호-002 AIR CONVEYOR","안성-탄산펫1호-003 RINSER","안성-탄산펫1호-004 FILLER","안성-탄산펫1호-005 PLASTIC CAPPER","안성-탄산펫1호-006 PARAMIX","안성-탄산펫1호-007 WARMER","안성-탄산펫1호-008 BOTTLE CONVEYOR","안성-탄산펫1호-009 BOTTLE CONVEYOR","안성-탄산펫1호-010 SLEEVE SHRINK LABELLAR","안성-탄산펫1호-011 PAD SHRINK PACKER","안성-탄산펫1호-012 HANDLE APPLICATOR","안성-탄산펫1호-013 WEIGHT CHECKER","안성-탄산펫1호-014 CARTON CONVEYOR","안성-탄산펫1호-015 Bundle CONVEYOR","안성-탄산펫1호-016 PALLETIZER","안성-탄산펫1호-017 STRETCH WRAPPER","안성-탄산펫1호-018 PALLET CONVEYOR","안성-탄산펫1호-019 PALLET CONVEYOR","안성-탄산펫1호-020 CAP 이송 CONVEYOR","안성-탄산펫1호-021 LEVEL-CHECKER","안성-탄산펫1호-022 X-RAY 검사기","안성-탄산펫1호-023 코딩검사기","안성-탄산펫1호-024 이종캡& 캡검사기","안성-탄산펫1호-025 제품 CORDER","안성-탄산펫1호-026 제품 CORDER","안성-탄산펫1호-027 BOX CORDER","안성-탄산펫1호-028 FILL HEIGHT CONTROL","안성-탄산펫1호-029 Case 단위 바코드 라벨라"],"탄산펫2호":["안성-탄산펫2호-001 Blowing M/C","안성-탄산펫2호-002 Filler, Capper","안성-탄산펫2호-003 CIP unit","안성-탄산펫2호-004 Cap Feeder","안성-탄산펫2호-005 Mixer","안성-탄산펫2호-006 FMS","안성-탄산펫2호-007 Preform Feeder","안성-탄산펫2호-008 이물검사기","안성-탄산펫2호-009 Bottle Coder","안성-탄산펫2호-010 Coding Inspector","안성-탄산펫2호-011 Warmer","안성-탄산펫2호-012 Shrink Labller","안성-탄산펫2호-013 Steam Tunnel","안성-탄산펫2호-014 Rol-fed Labller","안성-탄산펫2호-015 Label Inspector","안성-탄산펫2호-016 Accum table","안성-탄산펫2호-017 Pad 자동투입기","안성-탄산펫2호-018 Shrink Packer","안성-탄산펫2호-019 중량검사기","안성-탄산펫2호-020 Box Coder","안성-탄산펫2호-021 Palletizer","안성-탄산펫2호-022 Wrapping M/C","안성-탄산펫2호-023 Auto labeller","안성-탄산펫2호-024 Case 단위 바코드 라벨라"]};
+if(db.eqV!=2){db.eqV=2;['탄산펫 1호','어셉틱 3호'].forEach(k=>{if(!db.cases.some(c=>c.line==k))delete db.eq[k]});Object.keys(EQ0).forEach(l=>{db.eq[l]=db.eq[l]||[];EQ0[l].forEach(p=>{if(!db.eq[l].includes(p))db.eq[l].push(p)})})}
+db.cases.forEach(c=>{if(c.line){db.eq[c.line]=db.eq[c.line]||[];if(c.proc&&!db.eq[c.line].includes(c.proc))db.eq[c.line].push(c.proc)}});
+let cur=null,q='',fl='',sm='',edS=false,edE=false;
+const $=i=>document.getElementById(i);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>('0'+n).slice(-2);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const md=s=>s?(+s.slice(5,7))+'/'+(+s.slice(8,10)):'';
+const persist=()=>{try{localStorage.setItem(K,JSON.stringify(db));return true}catch(e){alert('저장 공간이 부족합니다. 백업 후 사진을 줄여 주세요.');return false}};
+const opts=(a,v)=>'<option value="">선택</option>'+a.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('');
+const past=k=>[...new Set(db.cases.map(c=>c[k]).filter(Boolean))];
+const dl=(id,a)=>`<datalist id="${id}">${a.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`;
+
+function go(v){view=v;render()}
+let view='list';
+function render(){
+  const y=scrollY;$('sh').innerHTML='';document.querySelector('.ui').style.display='';$('app').style.display='';
+  $('hb').innerHTML=view=='list'?'<button class="s g" onclick="newCase()">+ 새 이상 등록</button>':'<button class="s g" onclick="go(\'list\')">목록</button>';
+  $('app').innerHTML=view=='list'?listV():view=='edit'?formV():view=='stat'?statV():view=='eq'?eqV():'';
+  if(view=='list')paintList();
+  if(view=='print'){document.querySelector('.ui').style.display='none';$('app').style.display='none';
+    $('sh').innerHTML='<div class="ui" style="padding:8px;background:#12294a"><button class="s" onclick="window.print()">인쇄 / PDF 저장 (A4 가로)</button> <button class="s" onclick="savePPT()">PPT 파일 저장 (.pptx)</button> <button class="s" onclick="shareWx()">Webex로 보내기</button> <button class="s g" onclick="go(\'edit\')">돌아가기</button></div>'+sheet(cur)}
+  scrollTo(0,y)}
+
+/* ---------- 목록 ---------- */
+function listV(){return `<div class="row"><input id="qq" placeholder="검색 (증상·원인·조치·라인)" value="${esc(q)}" oninput="q=this.value;paintList()"><select onchange="fl=this.value;paintList()">${opts(past('line'),fl).replace('선택','전체 라인')}</select></div>
+<div class="row" style="margin-top:8px"><button class="g" onclick="go('stat')">월간 집계</button><button class="g" onclick="go('eq')">설비 목록</button><button class="g" onclick="exportJ()">백업 저장</button><button class="g" onclick="$('imp').click()">백업 복원</button><input id="imp" type="file" accept=".json" style="display:none" onchange="importJ(this)"></div><div id="lst"></div>`}
+function paintList(){const t=q.toLowerCase();
+  const r=db.cases.filter(c=>(!fl||c.line==fl)&&(!t||JSON.stringify([c.work,c.cause,c.line,c.proc,c.sym,c.symEtc,c.acts.map(a=>a.text),c.est]).toLowerCase().includes(t))).sort((a,b)=>a.d0<b.d0?1:-1);
+  $('lst').innerHTML=r.length?r.map(c=>{const a=c.acts[c.acts.length-1];return `<div class="card" onclick="openC('${c.id}')"><b>${esc(c.work)}</b><br><small>${esc(c.line)} · ${esc(c.proc)} · ${esc(c.sym)} · ${c.d0}</small><br>
+  <span class="b ${c.status=='승인'?'ap':c.status=='보강 완료'?'ok':''}">${c.status}</span> <span class="b">조치 ${c.acts.length}건</span>${a?` <span class="b">최근 발생 ${esc(a.res)}회</span>`:''}</div>`}).join(''):'<p style="text-align:center;color:#778">등록된 건이 없습니다.</p>'}
+function newCase(){cur={id:Date.now()+'',d0:today(),by:(db.lastWk||[]).join(', '),wk:(db.lastWk||[]).slice(),line:'',proc:'',cat:'돌발/예방보전',sym:'',work:'',cause:'',sys:{},acts:[],est:[],status:'현장 입력',appr:'',apprD:''};go('edit')}
+function openC(id){cur=JSON.parse(JSON.stringify(db.cases.find(c=>c.id==id)));cur.wk=cur.wk||(cur.by||'').split(',').map(x=>x.trim()).filter(Boolean);go('edit')}
+
+/* ---------- 입력 양식 ---------- */
+function formV(){const c=cur;HS.length=0;return `
+<div class="card"><div class="row"><div><label>작업자 (선택·추가)</label>${wkV()}</div><div><label>일자 (자동)</label><input type="date" value="${c.d0}" oninput="cur.d0=this.value"></div></div>
+<div class="row"><div><label>라인 *</label><select onchange="pickLine(this.value)">${eqOpts(Object.keys(db.eq),c.line)}</select></div><div><label>공정·설비 *</label><select onchange="pickProc(this.value)">${eqOpts(db.eq[c.line]||[],c.proc)}</select></div></div>
+<div class="row"><div><label>구분</label><select onchange="cur.cat=this.value">${opts(CATS,c.cat).replace('<option value="">선택</option>','')}</select></div><div><label>증상 유형 *</label><select onchange="cur.sym=this.value;cur.symEtc='';render()">${opts(db.symL,c.sym)}</select></div></div>
+<div style="margin-top:6px"><button class="chip${edY?' on':''}" onclick="edY=!edY;render()">증상 목록 편집</button></div>${edY?symEd():''}${c.sym?`<label>${c.sym=='기타'?'기타 증상 * (직접 기록)':c.sym+' 증상 직접 기록 (선택)'}</label><input id="se" value="${esc(c.symEtc||'')}" oninput="cur.symEtc=this.value">${hint(db.cases.map(x=>x.symEtc),'se')}`:''}<label>작업 사항 * (현상 한 줄)</label><div class="row"><input id="w" style="flex:4" value="${esc(c.work)}" oninput="cur.work=this.value"><button class="s" style="flex:0" onclick="mic('w')">🎤</button></div>${hint(db.cases.map(x=>x.work),'w')}</div>
+<h2>원인 분석</h2><div class="card"><div class="row"><textarea id="cs" style="flex:5" oninput="cur.cause=this.value">${esc(c.cause)}</textarea><button class="s" style="flex:0" onclick="mic('cs')">🎤</button></div>${hint(db.cases.map(x=>x.cause),'cs')}
+<label>원인 계통 점검 (순서대로 배제)</label>${sysBlock('전기 부분','sysE')}${sysBlock('기계 부분','sysM')}</div>
+<h2>조치 이력 (일자별 누적)</h2>${c.acts.map((a,i)=>`<div class="card"><div class="row"><div><label>일자</label><input type="date" value="${a.d}" oninput="cur.acts[${i}].d=this.value"></div><div><label>조치 유형</label><select onchange="cur.acts[${i}].type=this.value">${opts(ATYPE,a.type)}</select></div></div>
+<label>조치 내용 *</label><div class="row"><textarea id="a${i}" style="flex:5" oninput="cur.acts[${i}].text=this.value">${esc(a.text)}</textarea><button class="s" style="flex:0" onclick="mic('a${i}')">🎤</button></div>${hint(db.cases.flatMap(x=>x.acts.map(a=>a.text)),'a'+i)}
+<div class="row"><div><label>조치 후 발생 횟수 (회/일) *</label><input type="number" inputmode="numeric" value="${esc(a.res)}" oninput="cur.acts[${i}].res=this.value"></div><div><label>정지 시간 (분)</label><input type="number" inputmode="numeric" value="${esc(a.stop)}" oninput="cur.acts[${i}].stop=this.value"></div></div>
+<div>${(a.photos||[]).map((p,j)=>`<img class="th" src="${p}" onclick="if(confirm('사진 삭제?')){cur.acts[${i}].photos.splice(${j},1);render()}">`).join('')}</div>
+<div class="row" style="margin-top:6px"><button class="s g" onclick="$('p${i}').click()">📷 사진 추가</button><input id="p${i}" type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="addPh(${i},this)"><button class="s d" onclick="if(confirm('이 조치 삭제?')){cur.acts.splice(${i},1);render()}">조치 삭제</button></div></div>`).join('')}
+<button onclick="cur.acts.push({d:today(),type:'',text:'',res:'',stop:'',photos:[]});render()">+ 조치 추가</button>
+<h2>문제점 추정 의견 <button class="chip${edE?' on':''}" onclick="edE=!edE;render()">${edE?'편집 끝':'삭제 모드'}</button></h2><div class="card">${db.estL.concat(c.est.filter(x=>!db.estL.includes(x))).map(x=>`<button class="chip${c.est.includes(x)?' on':''}" onclick="togEst(this.dataset.v)" data-v="${esc(x)}">${esc(x)}${edE?' ✕':''}</button>`).join('')}
+<div class="row" style="margin-top:8px"><input id="ce" placeholder="항목 추가 (목록에 저장)"><button class="s" style="flex:0" onclick="addEst()">추가</button></div></div>
+<h2>상태 · 확인</h2><div class="card"><div class="row"><div><label>상태</label><select onchange="cur.status=this.value">${['현장 입력','보강 완료','승인'].map(s=>`<option${s==c.status?' selected':''}>${s}</option>`).join('')}</select></div><div><label>팀장 확인자</label><input value="${esc(c.appr)}" oninput="cur.appr=this.value"></div></div>
+<button class="g" style="margin-top:8px" onclick="approve()">팀장 확인 완료 처리</button>${c.apprD?` <span class="b ap">${esc(c.appr)} ${c.apprD}</span>`:''}</div>
+<div class="row"><button onclick="saveC()">저장</button><button class="g" onclick="prev()">양식 미리보기 (PDF·PPT)</button></div>
+${db.cases.find(x=>x.id==c.id)?'<button class="d" style="margin-top:10px" onclick="delC()">이 건 삭제</button>':''}`}
+function setSys(g,i,v){const k=db[g][i];cur.sys[k]=cur.sys[k]==v?'':v;render()}
+function addSys(g){const n=(prompt('추가할 항목 이름')||'').trim();if(n&&!db[g].includes(n)){db[g].push(n);persist()}render()}
+function delSys(g,i){if(confirm('"'+db[g][i]+'" 항목을 목록에서 삭제할까요?')){delete cur.sys[db[g][i]];db[g].splice(i,1);persist()}render()}
+function sysBlock(t,g){return `<div style="margin-top:10px"><b style="color:#12294a">${t}</b> <button class="chip" onclick="addSys('${g}')">+ 항목 추가</button><button class="chip${edS?' on':''}" onclick="edS=!edS;render()">${edS?'편집 끝':'삭제 모드'}</button></div>`+db[g].map((k,i)=>`<div style="margin:4px 0"><b style="display:inline-block;width:150px;font-size:13px;vertical-align:middle">${esc(k)}</b>${edS?`<button class="chip" style="background:#b3261e;color:#fff" onclick="delSys('${g}',${i})">삭제</button>`:SV.map(v=>`<button class="chip${cur.sys[k]==v?' on':''}" onclick="setSys('${g}',${i},'${v}')">${v}</button>`).join('')}</div>`).join('')}
+const eqOpts=(a,v)=>'<option value="">선택</option>'+(v&&!a.includes(v)?[v]:[]).concat(a).map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')+'<option value="__add">+ 직접 추가</option>';
+function pickLine(v){if(v=='__add'){const n=(prompt('라인 이름')||'').trim();if(n){db.eq[n]=db.eq[n]||[];cur.line=n;cur.proc='';persist()}}else{cur.line=v;cur.proc=''}render()}
+function pickProc(v){if(!cur.line){alert('라인을 먼저 선택하세요');return render()}if(v=='__add'){const n=(prompt('공정 이름')||'').trim();if(n){db.eq[cur.line]=db.eq[cur.line]||[];if(!db.eq[cur.line].includes(n))db.eq[cur.line].push(n);cur.proc=n;persist()}}else cur.proc=v;render()}
+/* ---------- 설비 목록 관리 ---------- */
+const eqK=i=>Object.keys(db.eq)[i];
+function eqV(){return `<div class="card"><b>설비 목록 (라인 / 공정)</b><p style="font-size:13px;color:#667">이상 등록 시 이 목록에서 선택합니다.</p>`+Object.keys(db.eq).map((l,i)=>`<div class="card" style="background:#f7f9fc"><b>${esc(l)}</b> <button class="s d" onclick="delLine(${i})">라인 삭제</button><div style="margin-top:6px">${db.eq[l].map((p,j)=>`<span class="chip">${esc(p)} <a onclick="delProc(${i},${j})" style="color:#b3261e">✕</a></span>`).join('')}<button class="chip" onclick="addProc(${i})">+ 공정</button></div></div>`).join('')+`<button onclick="addLine()">+ 라인 추가</button></div><div class="card"><b>목록 가져오기</b><p style="font-size:13px;color:#667">CSV·TXT (한 줄에 "라인,공정") 또는 JSON ({"라인":["공정"]})</p><input type="file" accept=".csv,.txt,.json" onchange="impEq(this)"></div>`}
+function addLine(){const n=(prompt('라인 이름')||'').trim();if(n&&!db.eq[n]){db.eq[n]=[];persist()}render()}
+function addProc(i){const l=eqK(i),n=(prompt('공정 이름')||'').trim();if(n&&!db.eq[l].includes(n)){db.eq[l].push(n);persist()}render()}
+function delLine(i){if(confirm('라인을 삭제할까요? (이미 저장된 보고서는 유지됩니다)')){delete db.eq[eqK(i)];persist()}render()}
+function delProc(i,j){db.eq[eqK(i)].splice(j,1);persist();render()}
+function impEq(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let n=0;const add=(l,p)=>{l=String(l||'').trim();p=String(p||'').trim();if(!l)return;db.eq[l]=db.eq[l]||[];if(p&&!db.eq[l].includes(p)){db.eq[l].push(p);n++}};
+  try{const d=JSON.parse(r.result);if(Array.isArray(d))d.forEach(x=>add(x.line||x['라인'],x.proc||x['공정']));else Object.keys(d).forEach(l=>Array.isArray(d[l])?d[l].forEach(p=>add(l,p)):0)}catch(e){r.result.split(/\r?\n/).forEach(t=>{const a=t.split(/[,\t]/);add(a[0],a[1])})}
+  persist();render();alert('공정 '+n+'건을 추가했습니다')};r.readAsText(f)}
+function togEst(v){if(edE){if(confirm('"'+v+'" 항목을 목록에서 삭제할까요?')){db.estL=db.estL.filter(x=>x!=v);cur.est=cur.est.filter(x=>x!=v);persist()}}else{const i=cur.est.indexOf(v);i<0?cur.est.push(v):cur.est.splice(i,1)}render()}
+function addEst(){const v=$('ce').value.trim();if(v){if(!db.estL.includes(v))db.estL.push(v);if(!cur.est.includes(v))cur.est.push(v);persist()}render()}
+function approve(){if(!cur.appr)return alert('확인자 이름을 입력하세요');cur.status='승인';cur.apprD=today();render()}
+function mic(id){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return alert('이 브라우저는 음성 입력을 지원하지 않습니다. 키보드의 마이크 버튼을 사용하세요.');
+  const r=new R();r.lang='ko-KR';r.onresult=e=>{const el=$(id);el.value=(el.value?el.value+' ':'')+e.results[0][0].transcript;el.dispatchEvent(new Event('input'))};r.onerror=()=>alert('음성 인식에 실패했습니다. (인터넷 연결이 필요할 수 있습니다)');r.start()}
+function addPh(i,inp){[...inp.files].forEach(f=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1000/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=im.width*s;cv.height=im.height*s;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);(cur.acts[i].photos=cur.acts[i].photos||[]).push(cv.toDataURL('image/jpeg',.7));render()};im.src=r.result};r.readAsDataURL(f)})}
+function check(c){const m=[];Object.keys(LB).forEach(k=>{if(!c[k])m.push(LB[k])});if(c.sym=='기타'&&!c.symEtc)m.push('기타 증상');c.acts.forEach((a,i)=>{if(!a.text)m.push((i+1)+'번 조치 내용');if(a.res===''||a.res==null)m.push((i+1)+'번 조치 후 발생 횟수')});return m}
+function saveC(go2){const m=check(cur);if(m.length){alert('필수 항목을 입력하세요:\n- '+m.join('\n- '));return false}
+  db.user=cur.by;db.lastWk=cur.wk;if(cur.sym=='기타'&&cur.symEtc&&!db.symL.includes(cur.symEtc))db.symL.splice(Math.max(0,db.symL.indexOf('기타')),0,cur.symEtc);cur.upd=Date.now();const i=db.cases.findIndex(x=>x.id==cur.id);i<0?db.cases.push(cur):db.cases[i]=cur;if(!persist())return false;if(go2!==false)go('list');return true}
+function delC(){if(confirm('삭제하면 복구할 수 없습니다. 삭제할까요?')){db.cases=db.cases.filter(x=>x.id!=cur.id);persist();go('list')}}
+function prev(){if(saveC(false))go('print')}
+
+/* ---------- 작업자 · 이전 기록 힌트 ---------- */
+const HS=[];let edY=false;
+function symEd(){return `<div class="card" style="margin:6px 0">`+db.symL.map((k,i)=>k=='기타'?'':`<button class="chip" onclick="delSym(${i})">${esc(k)} ✕</button>`).join('')+`<div class="row" style="margin-top:6px"><input id="ns" placeholder="증상 항목 추가"><button class="s" style="flex:0" onclick="addSym()">추가</button></div></div>`}
+function delSym(i){const k=db.symL[i];if(confirm('"'+k+'" 증상 항목을 삭제할까요?')){db.symL.splice(i,1);if(cur.sym==k){cur.sym='';cur.symEtc=''}persist()}render()}
+function addSym(){const v=$('ns').value.trim();if(v&&!db.symL.includes(v)){const j=db.symL.indexOf('기타');db.symL.splice(j<0?db.symL.length:j,0,v);persist()}render()}
+function wkV(){return db.wk.map((n,i)=>`<button class="chip${cur.wk.includes(n)?' on':''}" onclick="togWk(${i})">${esc(n)}</button>`).join('')+`<div class="row" style="margin-top:4px"><input id="nw" placeholder="새 이름 입력"><button class="s" style="flex:0" onclick="addWk()">추가</button></div>`}
+function togWk(i){const n=db.wk[i],j=cur.wk.indexOf(n);j<0?cur.wk.push(n):cur.wk.splice(j,1);cur.by=cur.wk.join(', ');render()}
+function addWk(){const v=$('nw').value.trim();if(v){if(!db.wk.includes(v))db.wk.push(v);if(!cur.wk.includes(v))cur.wk.push(v);cur.by=cur.wk.join(', ');persist()}render()}
+function hint(vals,id){const u=[...new Set(vals.filter(Boolean))].slice(-4).reverse();return u.length?`<div style="opacity:.5;font-size:12px;margin-top:2px">${u.map(t=>{HS.push(t);return `<span class="chip" style="font-size:12px;padding:4px 8px" onclick="useH(${HS.length-1},'${id}')">${esc(t.length>26?t.slice(0,26)+'…':t)}</span>`}).join('')}</div>`:''}
+function useH(i,id){const e=$(id);e.value=HS[i];e.dispatchEvent(new Event('input'))}
+/* ---------- PPT 저장 (오프라인, 직접 생성) ---------- */
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc=d=>{let c=-1;for(let i=0;i<d.length;i++)c=crcT[(c^d[i])&255]^(c>>>8);return(c^-1)>>>0};
+function zip(fs){const E=new TextEncoder();let off=0;const L=[],C=[];fs.forEach(([n,d])=>{const nb=E.encode(n),cr=crc(d),h=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint32(14,cr,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nb.length,true);
+  c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint32(16,cr,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);
+  L.push(new Uint8Array(h.buffer),nb,d);C.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+d.length});
+  const cl=C.reduce((s,x)=>s+x.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,fs.length,true);e.setUint16(10,fs.length,true);e.setUint32(12,cl,true);e.setUint32(16,off,true);
+  return new Blob([...L,...C,new Uint8Array(e.buffer)],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'})}
+const dim=u=>new Promise(r=>{const i=new Image();i.onload=()=>r([i.width,i.height]);i.onerror=()=>r([4,3]);i.src=u});
+const NS='xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+const GRP='<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>',XH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',RT='http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+const rel=a=>XH+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+a.map(([i,t,g])=>`<Relationship Id="${i}" Type="${RT}${t}" Target="${g}"/>`).join('')+'</Relationships>';
+const FN='KoPub돋움체 Bold',mm=n=>Math.round(n*36000);
+function sp(id,x,y,w,h,ps,o={}){return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="s${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${mm(x)}" y="${mm(y)}"/><a:ext cx="${mm(w)}" cy="${mm(h)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>${o.f?`<a:solidFill><a:srgbClr val="${o.f}"/></a:solidFill>`:'<a:noFill/>'}${o.ln===0?'<a:ln><a:noFill/></a:ln>':'<a:ln w="9525"><a:solidFill><a:srgbClr val="808080"/></a:solidFill></a:ln>'}</p:spPr><p:txBody><a:bodyPr wrap="square" lIns="72000" tIns="36000" rIns="72000" bIns="36000" anchor="${o.a||'ctr'}"><a:normAutofit/></a:bodyPr><a:lstStyle/>${ps.map(p=>{const rs=Array.isArray(p[0])?p:[p];return `<a:p><a:pPr algn="${o.al||'ctr'}"${o.hg&&/^[→\[]/.test(rs[0][0])?` marL="${mm(6)}" indent="-${mm(6)}"`:''}>${o.ls?`<a:lnSpc><a:spcPct val="${o.ls}"/></a:lnSpc>`:''}</a:pPr>${rs.map(r=>`<a:r><a:rPr lang="ko-KR" sz="${o.sz||1000}" b="0"><a:solidFill><a:srgbClr val="${r[1]||'262626'}"/></a:solidFill>${r[2]?'<a:highlight><a:srgbClr val="FFFF00"/></a:highlight>':''}<a:latin typeface="${FN}"/><a:ea typeface="${FN}"/></a:rPr><a:t>${esc(r[0])}</a:t></a:r>`).join('')}</a:p>`}).join('')||'<a:p/>'}</p:txBody></p:sp>`}
+const pic=(id,rid,x,y,w,h)=>`<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="p${id}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${mm(x)}" y="${mm(y)}"/><a:ext cx="${mm(w)}" cy="${mm(h)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
+const acc=['accent1','accent2','accent3','accent4','accent5','accent6'].map(k=>`<a:${k}><a:srgbClr val="1F3F7A"/></a:${k}>`).join('');
+const FL_='<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>',LN_='<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>';
+const THEME=XH+`<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="T"><a:themeElements><a:clrScheme name="c"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F3F7A"/></a:dk2><a:lt2><a:srgbClr val="EEEEEE"/></a:lt2>${acc}<a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fontScheme name="f"><a:majorFont><a:latin typeface="${FN}"/><a:ea typeface="${FN}"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${FN}"/><a:ea typeface="${FN}"/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="m"><a:fillStyleLst>${FL_+FL_+FL_}</a:fillStyleLst><a:lnStyleLst>${LN_+LN_+LN_}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${FL_+FL_+FL_}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+function pLines(c){const R='C00000',B='0033CC',L=[[['원인 분석 : '+symT(c),R]]];(c.cause||'').split('\n').forEach(t=>t&&L.push([[t,R]]));
+  sysLine(c).forEach(g=>{const rs=[['→ '+g.t+' 계통 : ',R]];g.it.forEach((o,i)=>{if(i)rs.push([' / ',R]);rs.push([o.k+' '+o.v,R,o.v=='원인'])});L.push(rs)});
+  L.push([['','000000']],[['조치 내용 :',B]]);c.acts.forEach((a,i)=>L.push([['['+'조치 '+(i+1)+'] ',B],[md(a.d)+': '+(a.type?'['+a.type+'] ':'')+a.text+' : 발생 '+a.res+'회/일'+(a.stop?', 정지 '+a.stop+'분':''),B]]));return L}
+async function buildPPT(){const c=cur,pa=[];c.acts.forEach((a,i)=>(a.photos||[]).forEach(u=>pa.push([u,i+1,a])));const pa6=pa.slice(0,6),ph=pa6.map(x=>x[0]),dm=await Promise.all(ph.map(dim));
+  let id=2,sh='';const S=(...a)=>{sh+=sp(id++,...a)},cw=[20,45,20,60,22,45,18,55],Y=22,H3=129;let x=6;
+  S(6,5,285,14,[['■ '+c.work,'000000']],{ln:0,al:'l',sz:2000});
+  [['라 인',1],[c.line],['공 정',1],[c.proc],['작업자',1],[c.by],['일 자',1],[c.d0]].forEach((r,i)=>{S(x,Y,cw[i],11,[[r[0]]],{f:r[1]?'F2F2F2':0,sz:r[1]?1100:900});x+=cw[i]});
+  S(6,Y+11,cw[0],12,[['구 분']],{f:'F2F2F2',sz:1100});S(26,Y+11,125,12,[[CATS.map(k=>(k==c.cat?'☒ ':'☐ ')+k).join('   ')]],{al:'l'});
+  S(151,Y+11,22,12,[['작업 사항']],{f:'F2F2F2',sz:1100});S(173,Y+11,118,12,[[c.work]],{});
+  S(6,Y+23,20,H3,[['내용 / 이미지']],{f:'F2F2F2',sz:1100});S(26,Y+23,265,H3,[],{});
+  {const PL=pLines(c),n=PL.reduce((t,r)=>t+Math.max(1,Math.ceil(r.map(q=>q[0]).join('').length/36)),0);S(28,Y+25,148,H3-4,PL,{ln:0,al:'l',a:'t',ls:200000,hg:1,sz:n<=14?1000:n<=16?900:800})}
+  let pics='',rl=[['rId1','slideLayout','../slideLayouts/slideLayout1.xml']];
+  ph.forEach((u,i)=>{const bw=53,bh=ph.length>4?40:61,bx=180+(i%2)*(bw+3),by=Y+25+Math.floor(i/2)*(bh+3),k=Math.min(bw/dm[i][0],bh/dm[i][1]),w=dm[i][0]*k,h=dm[i][1]*k;rl.push(['rId'+(i+2),'image','../media/i'+i+'.jpg']);pics+=pic(id++,'rId'+(i+2),bx+(bw-w)/2,by+(bh-h)/2,w,h)+sp(id++,bx+(bw-w)/2,by+(bh-h)/2,14,5,[['조치 '+pa6[i][1],'FFFFFF']],{f:'0033CC',ln:0,sz:800})+(()=>{const a=pa6[i][2],t=(a.type?'['+a.type+'] ':'')+a.text,m=Math.floor(w/2.4)*2;return sp(id++,bx+(bw-w)/2,by+(bh-h)/2+h-8,w,8,[[t.length>m?t.slice(0,m-1)+'…':t,'FFFFFF']],{f:'262626',ln:0,sz:700,al:'l'})})()});
+  S(6,Y+23+H3,20,30,[['문제점'],['추정 의견']],{f:'F2F2F2',sz:1100});S(26,Y+23+H3,265,30,c.est.map((e,i)=>[(i+1)+'. '+e]),{al:'l',a:'t'});
+  const E=new TextEncoder(),X=s=>E.encode(XH+s),F=[
+  ['[Content_Types].xml',X('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/></Types>')],
+  ['_rels/.rels',E.encode(rel([['rId1','officeDocument','ppt/presentation.xml']]))],
+  ['ppt/presentation.xml',X(`<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst><p:sldSz cx="10692000" cy="7560000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`)],
+  ['ppt/_rels/presentation.xml.rels',E.encode(rel([['rId1','slideMaster','slideMasters/slideMaster1.xml'],['rId2','slide','slides/slide1.xml'],['rId3','theme','theme/theme1.xml']]))],
+  ['ppt/slideMasters/slideMaster1.xml',X(`<p:sldMaster ${NS}><p:cSld><p:spTree>${GRP}</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`)],
+  ['ppt/slideMasters/_rels/slideMaster1.xml.rels',E.encode(rel([['rId1','slideLayout','../slideLayouts/slideLayout1.xml'],['rId2','theme','../theme/theme1.xml']]))],
+  ['ppt/slideLayouts/slideLayout1.xml',X(`<p:sldLayout ${NS} type="blank"><p:cSld name="B"><p:spTree>${GRP}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`)],
+  ['ppt/slideLayouts/_rels/slideLayout1.xml.rels',E.encode(rel([['rId1','slideMaster','../slideMasters/slideMaster1.xml']]))],
+  ['ppt/theme/theme1.xml',E.encode(THEME)],
+  ['ppt/slides/slide1.xml',X(`<p:sld ${NS}><p:cSld><p:spTree>${GRP}${sh}${pics}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`)],
+  ['ppt/slides/_rels/slide1.xml.rels',E.encode(rel(rl))]];
+  ph.forEach((u,i)=>F.push(['ppt/media/i'+i+'.jpg',Uint8Array.from(atob(u.split(',')[1]),ch=>ch.charCodeAt(0))]));
+  const a=document.createElement('a');a.href=URL.createObjectURL(zip(F));a.download='이상조치보고_'+c.d0+'.pptx';return zip(F)}
+async function savePPT(){const b=await buildPPT(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='이상조치보고_'+cur.d0+'.pptx';a.click()}
+async function shareWx(){const b=await buildPPT(),f=new File([b],'이상조치보고_'+cur.d0+'.pptx',{type:b.type});if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:cur.work})}catch(e){}return}savePPT();alert('파일을 저장했습니다. Webex 대화창에 이 파일을 첨부해 보내세요.')}
+/* ---------- 월간 집계 ---------- */
+function statV(){const m=sm||today().slice(0,7),cs=db.cases.filter(c=>c.d0.startsWith(m));
+  const cnt=f=>{const o={};cs.forEach(c=>{const k=f(c)||'미분류';o[k]=(o[k]||0)+1});return '<table class="st">'+(Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="width:60px">${v}건</td></tr>`).join('')||'<tr><td>데이터 없음</td></tr>')+'</table>'};
+  const stop=cs.reduce((s,c)=>s+c.acts.reduce((x,a)=>x+(+a.stop||0),0),0);
+  return `<div class="card"><label>집계 월</label><input type="month" value="${m}" onchange="sm=this.value;render()"><p>총 <b>${cs.length}건</b> · 누적 정지 시간 <b>${stop}분</b></p></div><h2>라인별</h2>${cnt(c=>c.line)}<h2>증상 유형별</h2>${cnt(c=>c.sym=='기타'&&c.symEtc?'기타: '+c.symEtc:c.sym)}<h2>추정 원인별</h2>${cnt(c=>0)}`.replace(/<h2>추정 원인별<\/h2>.*$/,'<h2>추정 원인별</h2>'+(()=>{const o={};cs.forEach(c=>c.est.forEach(e=>o[e]=(o[e]||0)+1));return '<table class="st">'+(Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="width:60px">${v}건</td></tr>`).join('')||'<tr><td>데이터 없음</td></tr>')+'</table>'})())}
+
+/* ---------- 백업 ---------- */
+function exportJ(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download='이상조치보고_백업_'+today()+'.json';a.click()}
+function importJ(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);let a=0,u=0,k=0;
+  (d.cases||[]).forEach(c=>{const i=db.cases.findIndex(x=>x.id==c.id);if(i<0){db.cases.push(c);a++}else if((c.upd||0)>(db.cases[i].upd||0)){db.cases[i]=c;u++}else k++});
+  const un=(x,y)=>{(y||[]).forEach(v=>{if(!x.includes(v))x.push(v)})};['sysE','sysM','estL','wk','symL'].forEach(g=>{db[g]=db[g]||[];un(db[g],d[g])});
+  Object.keys(d.eq||{}).forEach(l=>{db.eq[l]=db.eq[l]||[];un(db.eq[l],d.eq[l])});if(!db.user)db.user=d.user||'';
+  persist();render();alert('복원 완료\n새로 추가 '+a+'건 · 최신으로 갱신 '+u+'건 · 현재 것이 더 최신이라 유지 '+k+'건')}catch(e){alert('백업 파일을 읽을 수 없습니다')}};r.readAsText(f)}
+
+/* ---------- 출력 양식 (전기실 작업 사항) ---------- */
+function sysLine(c){return [['전기',db.sysE],['기계',db.sysM]].map(([t,a])=>({t,it:a.filter(k=>c.sys[k]).map(k=>({k,v:c.sys[k]}))})).filter(x=>x.it.length)}
+const symT=c=>c.symEtc?c.sym+'('+c.symEtc+')':c.sym;
+function sheet(c){const ph=[];c.acts.forEach((a,i)=>(a.photos||[]).forEach(u=>ph.push([u,i+1,a])));const P=ph.slice(0,6);
+  const sy=sysLine(c).map(g=>`<div class="ln red sy"><span>→ ${g.t} 계통 :&nbsp;</span><span>${g.it.map(o=>o.v=='원인'?`<mark>${esc(o.k)} 원인</mark>`:esc(o.k)+' '+o.v).join(' / ')}</span></div>`).join('');
+  const acts=c.acts.map((a,i)=>`<div class="ln blue"><b class="tg">조치 ${i+1}</b> ${md(a.d)}: ${a.type?'['+esc(a.type)+'] ':''}${esc(a.text)} : 발생 ${esc(a.res)}회/일${a.stop?', 정지 '+esc(a.stop)+'분':''}</div>`).join('');
+  return `<div class="sheet"><h1>■ ${esc(c.work)}</h1><table>
+<tr><th>라 인</th><td>${esc(c.line)}</td><th>공 정</th><td>${esc(c.proc)}</td><th>작업자</th><td>${esc(c.by)}</td><th>일 자</th><td>${c.d0}</td></tr>
+<tr><th>구 분</th><td colspan="3" class="l">${CATS.map(x=>(x==c.cat?'☒ ':'☐ ')+x).join('&nbsp; ')}</td><th>작업 사항</th><td colspan="3">${esc(c.work)}</td></tr>
+<tr><th>내용 / 이미지</th><td colspan="7" class="body"><div class="txt"><div class="ln red">원인 분석 : ${esc(symT(c))}</div>${c.cause?`<div class="ln red">${esc(c.cause).replace(/\n/g,'<br>')}</div>`:''}${sy}<div class="ln blue" style="margin-top:5mm">조치 내용 :</div>${acts}</div><div class="pics${P.length>4?' t':''}">${P.map(([u,n,a])=>`<span><img src="${u}"><i>조치 ${n}</i><b class="cap">${esc((a.type?'['+a.type+'] ':'')+a.text)}</b></span>`).join('')}</div></td></tr>
+<tr><th>문제점<br>추정 의견</th><td colspan="7" class="l" style="height:30mm;vertical-align:top">${c.est.map((e,i)=>(i+1)+'. '+esc(e)).join('<br>')}${c.apprD?`<div style="text-align:right;font-size:9pt">확인 : ${esc(c.appr)} (${c.apprD})</div>`:''}</td></tr></table></div>`}
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')==0)navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script></body></html>
